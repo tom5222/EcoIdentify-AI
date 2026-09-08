@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoIdentify AI - Real-Time AI Waste Classifier</title>
+    <meta name="description" content="AI-Powered Real-Time Waste Classification & Instant Recycling Guidance System. Classify Plastic, Glass, Metal, Paper, Cardboard, and Trash.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-background"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand-container">
+                <div class="logo-icon">
+                    <span>♻️</span>
+                    <div class="logo-glow"></div>
+                </div>
+                <div class="brand-text">
+                    <h1>EcoIdentify <span class="accent-text">AI</span></h1>
+                    <p class="subtitle">Real-Time Waste Classification & Recycling Intelligence</p>
+                </div>
+            </div>
+            <div class="system-status">
+                <span class="status-dot online"></span>
+                <span class="status-text" id="statusText">AI Model Active</span>
+            </div>
+        </header>
+
+        <!-- Main Content Layout Grid -->
+        <main class="main-grid">
+            <!-- Left Panel: Input Modes (Camera / Upload) -->
+            <section class="panel input-panel">
+                <!-- Mode Switcher Tabs -->
+                <div class="mode-tabs">
+                    <button class="tab-btn active" id="tabWebcam" onclick="switchMode('webcam')">
+                        <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        Live Camera
+                    </button>
+                    <button class="tab-btn" id="tabUpload" onclick="switchMode('upload')">
+                        <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Upload Image
+                    </button>
+                </div>
+
+                <!-- View 1: Live Webcam View -->
+                <div class="view-container active" id="webcamView">
+                    <div class="viewport-wrapper">
+                        <video id="videoFeed" autoplay playsinline muted></video>
+                        <canvas id="hiddenCanvas" style="display: none;"></canvas>
+                        
+                        <!-- Camera Bounding Box & Target Scanner Overlay -->
+                        <div class="scanner-overlay" id="scannerOverlay">
+                            <div class="scanner-frame">
+                                <div class="corner corner-tl"></div>
+                                <div class="corner corner-tr"></div>
+                                <div class="corner corner-bl"></div>
+                                <div class="corner corner-br"></div>
+                                <div class="scanner-laser"></div>
+                            </div>
+                            <span class="scanner-label">Align Object Within Frame</span>
+                        </div>
+
+                        <!-- Camera Error / Off Overlay -->
+                        <div class="camera-fallback" id="cameraFallback" style="display: none;">
+                            <div class="fallback-icon">📷</div>
+                            <p>Camera is currently off or access was denied.</p>
+                            <button class="btn btn-secondary" onclick="initWebcam()">Start Camera</button>
+                        </div>
+                    </div>
+
+                    <!-- Camera Control Bar -->
+                    <div class="controls-bar">
+                        <button class="btn btn-primary btn-glow" id="btnCapture" onclick="captureAndClassify()">
+                            <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
+                            Capture & Classify
+                        </button>
+                        
+                        <!-- Auto Scan Toggle -->
+                        <div class="auto-scan-wrapper">
+                            <label class="switch">
+                                <input type="checkbox" id="autoScanToggle" onchange="toggleAutoScan(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="auto-scan-label">
+                                Auto-Scan
+                                <span class="pulse-indicator" id="autoScanPulse"></span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View 2: Drag & Drop File Upload View -->
+                <div class="view-container" id="uploadView">
+                    <div class="dropzone" id="dropzone" onclick="triggerFileInput()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)">
+                        <input type="file" id="fileInput" accept="image/jpeg,image/jpg,image/png,image/webp" style="display: none;" onchange="handleFileSelect(event)">
+                        
+                        <div class="dropzone-content" id="dropzonePrompt">
+                            <div class="dropzone-icon">☁️</div>
+                            <h3>Drag & Drop Image Here</h3>
+                            <p>Supports JPG, PNG, WEBP files up to 10MB</p>
+                            <span class="btn btn-secondary">Browse Files</span>
+                        </div>
+
+                        <!-- Image Preview -->
+                        <div class="preview-container" id="previewContainer" style="display: none;">
+                            <img id="imagePreview" src="" alt="Waste Image Preview">
+                            <button class="remove-preview-btn" onclick="clearImagePreview(event)" title="Remove Image">✕</button>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary btn-full mt-4" id="btnUploadClassify" onclick="classifyUploadedImage()" disabled>
+                        Classify Uploaded Image
+                    </button>
+                </div>
+            </section>
+
+            <!-- Right Panel: Analytics & Recycling Recommendations -->
+            <section class="panel results-panel">
+                <!-- Top-1 Prediction Banner Card -->
+                <div class="card top-prediction-card" id="topPredictionCard">
+                    <div class="prediction-header">
+                        <span class="prediction-badge">TOP PREDICTION</span>
+                        <span class="confidence-pill" id="confidencePill">--%</span>
+                    </div>
+
+                    <div class="prediction-body">
+                        <span class="prediction-emoji" id="predictionEmoji">🔍</span>
+                        <div class="prediction-info">
+                            <h2 class="prediction-title" id="predictionTitle">Ready to Identify</h2>
+                            <p class="prediction-subtext" id="predictionSubtext">Capture or upload an image to view real-time analysis</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Probabilities Distribution Panel -->
+                <div class="card probabilities-card">
+                    <h3 class="card-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        Class Probability Scores
+                    </h3>
+
+                    <div class="progress-bars-list" id="progressBarsList">
+                        <!-- Default placeholder items -->
+                        <div class="progress-item" data-class="Cardboard">
+                            <div class="progress-info">
+                                <span class="label">📦 Cardboard</span>
+                                <span class="val">0.0%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill cardboard-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item" data-class="Glass">
+                            <div class="progress-info">
+                                <span class="label">🍾 Glass</span>
+                                <span class="val">0.0%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill glass-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item" data-class="Metal">
+                            <div class="progress-info">
+                                <span class="label">🥫 Metal</span>
+                                <span class="val">0.0%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill metal-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item" data-class="Paper">
+                            <div class="progress-info">
+                                <span class="label">📄 Paper</span>
+                                <span class="val">0.0%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill paper-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item" data-class="Plastic">
+                            <div class="progress-info">
+                                <span class="label">🥤 Plastic</span>
+                                <span class="val">0.0%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill plastic-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item" data-class="Trash">
+                            <div class="progress-info">
+                                <span class="label">🗑️ Trash</span>
+                                <span class="val">0.0%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill trash-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Recycling & Disposal Guidance Card -->
+                <div class="card guidance-card" id="guidanceCard">
+                    <div class="guidance-header">
+                        <h3 class="card-title mb-0">
+                            <svg class="section-icon text-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Recycling & Disposal Guidance
+                        </h3>
+                        <span class="bin-badge" id="binBadge">Disposal Bin</span>
+                    </div>
+
+                    <div class="guidance-body">
+                        <div class="guidance-steps" id="guidanceSteps">
+                            <p class="text-placeholder">Awaiting scan or image upload to provide actionable disposal instructions.</p>
+                        </div>
+                        
+                        <div class="eco-tip-box" id="ecoTipBox" style="display: none;">
+                            <span class="tip-icon">💡</span>
+                            <p id="ecoTipText">Eco Tip will appear here.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- JavaScript Handler -->
+    <script src="/static/camera.js"></script>
+</body>
+</html>
