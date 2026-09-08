@@ -54,9 +54,7 @@ wms/
 
 ### Step 1: Clone or Navigate to the Workspace
 Open PowerShell or Terminal and navigate to the project directory:
-```powershell
-cd c:\Users\Binoy\Desktop\wms
-```
+
 
 ### Step 2: Install Dependencies
 Install all required Python packages using `pip`:
